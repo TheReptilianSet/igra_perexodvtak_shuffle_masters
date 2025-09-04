@@ -1,0 +1,31 @@
+/*
+ В каждой строке все карточки одинаковой высоты (скрипт equalizeRows это уже делает).
+ Кнопка всегда «у основания».
+ Отступ между текстом и кнопкой фиксированный (8px, можешь поменять).
+ Внутри карточки не появляется пустое «растяжение» контента — только минимальный gap.
+*/
+
+/* Карточка на всю высоту */
+.js-product .t-store__card__wrap_all {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Контент + описание */
+.js-product .t-store__card__wrap_txt-and-btns {
+  flex: 0 1 auto;       /* занимает столько, сколько нужно по контенту */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Текстовая часть растёт только при необходимости */
+.js-product .store__card__wrap_txt-and-opts {
+  flex: 1 0 auto;
+}
+
+/* Кнопка всегда прижата вниз */
+.js-product .t-store__card__btns-wrapper {
+  margin-top: auto;     /* прижимает к низу */
+  padding-top: 8px;     /* минимальный зазор между текстом и кнопкой */
+}
