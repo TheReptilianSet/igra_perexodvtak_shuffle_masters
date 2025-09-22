@@ -1,0 +1,45 @@
+<style>
+.t-btn-open-schedule {
+    display: inline-block !important;
+    padding: 12px 28px;
+    background-color: #ffc45a  !important;
+    color: #fff !important;
+    border-radius: 100px;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+}
+
+/* Эффект при наведении */
+.t-btn-open-schedule:hover {
+  background-color: #ffb733 !important; /* чуть темнее фон */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* лёгкая тень */
+  transform: translateY(-2px); /* лёгкий "подъём" */
+}
+</style>
+<script> 
+    document.addEventListener("DOMContentLoaded", function() {
+        // Функция замены SKU на кнопку 
+        const replaceSkuWithButton = (container) => {
+            const skuWrapper = container.querySelector(".t-store__prod-popup__sku");
+            if (!skuWrapper) return;
+            const skuSpan = skuWrapper.querySelector(".js-store-prod-sku");
+            if (!skuSpan) return;
+            const sku = skuSpan.textContent.trim();
+            if (sku.length < 36) return; // Длина uuid4
+            const btn = document.createElement("a");
+            btn.href = "https://game.igra-perexodvtak.ru/desktop/games/master/" + sku;
+            btn.textContent = "Открыть расписание игр мастера";
+            btn.className = "t-btn-open-schedule";
+            btn.setAttribute("target", "_blank");
+            btn.style.display = "inline-block";
+            btn.style.marginTop = "10px";
+            skuWrapper.replaceWith(btn);
+        };
+        // 1. Запуск на странице продукта (обычный рендер) 
+        if (document.querySelector(".t-store__prod-popup__sku")) {
+            replaceSkuWithButton(document);
+        }
+    }); 
+</script>
