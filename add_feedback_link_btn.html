@@ -1,0 +1,342 @@
+<style>
+    .t-store__card__sold-out-msg {
+    	visibility: hidden;
+    }
+    .t-store__card__sold-out-msg:after {
+        display: none;
+    }
+    /*.t-store__card__sold-out-msg:after {*/
+    /*	content: 'Нет окон для записи';*/
+    /*	visibility: visible;*/
+    /*	display: block;*/
+    /*	color: #ff8562*/
+    /*}*/
+    .t-btn-black {
+        color:#ffffff !important;
+        background-color:#000000;
+        border-radius:10px; 
+        -moz-border-radius:10px; 
+        -webkit-border-radius:10px;
+        padding: 10px;
+        margin-top: 10px
+    }
+    
+    /* Фиксит кнопку регистрации на игру */
+    .t-store__prod-popup__info > .t-store__prod-popup__btn-wrapper.t-store__prod-popup__btn-wrapper-fixed {
+        bottom: 60px;
+    }
+    
+    .tak_product-desc-custom {
+        font-size: 20px;
+    }
+    .tak_product-desc-custom > p {
+        margin-bottom: 10px;
+    }
+    .tak_product-desc-custom > hr {
+        border: none;
+        border-bottom: 1px solid rgba(0, 0, 0, .3);
+    }
+    
+    .t-btn-outline-custom {
+      display: inline-block;
+      padding: 12px 28px;
+      background-color: #fff;          /* белый фон */
+      color: #8b5d43 !important;                  /* текст */
+      border: 2px solid #ffc45a;       /* рамка */
+      border-radius: 100px;            /* скругление */
+      font-size: 18px;
+      font-weight: 600;
+      text-decoration: none !important;
+      transition: all 0.3s ease;
+    }
+    
+    /* Эффект при наведении */
+    .t-btn-outline-custom:hover {
+      background-color: #ffc45a;       /* заливаем жёлтым */
+      color: #fff !important;                     /* текст становится белым */
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);     /* лёгкий "подъём" */
+    }
+    
+</style>
+<script>
+    /*
+        var button = document.querySelector(".js-store-prod-popup-buy-btn-txt");
+       
+        if (button != null) {
+             
+            var buttonContent = button.innerHTML;
+            if (document.querySelector(".t-store__prod-popup__btn_disabled")!=null) {
+                console.log(button);
+                button.innerHTML = "Нет окон для записи";
+            }
+        }
+        else {
+            button = document.querySelector(".t-store__prod-popup__info");
+        }
+            
+        var aEl = document.createElement("a");
+        aEl.href = "#popup:preorderform";
+        aEl.classList.add("t-btn")
+        // aEl.classList.add("t-btn_md");
+        aEl.classList.add("t-btn-black");
+        aEl.innerHTML = "Предзапись на игру";
+        button.appendChild(aEl); */
+    //   button.parentNode.insertBefore(aEl, button.nextSibling);
+    
+    const waitFor = async (cond, timeout = 100, maxCount = Infinity) => {
+        let count = 0;
+        while(count <= maxCount) {
+            const condResult = cond();
+            if (condResult) return condResult;
+            await new Promise((r) => setTimeout(r, timeout));
+            count++;
+        }
+    }
+    
+    const addAnketaButton = (link) => {
+        const container = document.querySelector(".t-store__prod-popup__info");
+        
+        const aEl = document.createElement("a");
+        aEl.classList.add("t-store__prod-popup__btn", "t-btn", "t-btn_sm", "t-btn-black");
+        aEl.href = link;
+        aEl.target = "_blank";
+        aEl.innerHTML = `
+            <table style="width:100%; height:100%;">
+                <tbody>
+                    <tr>
+                        <td class="js-store-prod-popup-buy-btn-txt">Заполнить анкету</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+        
+        const wrapperEl = document.createElement("div");
+        wrapperEl.classList.add("t-store__prod-popup__btn-wrapper", "t-store__prod-popup__btn-wrapper-fixed");
+        wrapperEl.appendChild(aEl);
+        
+        container.appendChild(wrapperEl);
+    }
+    
+    const processProductDesc = async () => {
+        console.log('processing product desc');
+        
+        const allTextEl = document.querySelector(".js-store-prod-all-text");
+        const allText = allTextEl.innerHTML.split('<br>')
+            .map((line) => line.replace("\n", "").trim())
+        
+        const descEl = document.createElement("div");
+        descEl.innerHTML = allText.map((line) => {
+            if (!line)
+                return "<div style='height: 1.5em'></div>";
+            if (line.startsWith(".anketa")) {
+                const linkInd = line.indexOf("http");
+                if (linkInd == -1) return "";
+                const link = line.slice(linkInd).trim();
+                addAnketaButton(link);
+                return "";
+            }
+            if (line === "---")
+                return "<hr>";
+            if (line.endsWith(".mp3"))
+                return `<audio controls src="${line}"></audio>`;
+            return `<p>${line}</p>`;
+        }).join("");
+        descEl.style.padding = "20px 40px";
+        descEl.classList.add("t-text", "tak_product-desc-custom");
+        
+        const photoContainerEl = document.querySelector(".t-store__prod-popup__slider.t-store__prod-popup__col-left");
+        await waitFor(() => photoContainerEl.querySelector(".t-slds"), 300);
+        photoContainerEl.appendChild(descEl);
+        
+        document.querySelector(".js-store-prod-all-text").innerHTML = '';
+    };
+    
+    const processProductBackButton = () => {
+        const selector = ".t171__link";
+        const anchor = document.querySelector(selector);
+        anchor.href = "/masters";
+    }
+    
+    const processOutOfStockButton = async () => {
+        console.log('processing stock button');
+        
+        const selector = ".t-store__prod-popup__btn_disabled .js-store-prod-popup-buy-btn-txt"
+        await waitFor(
+            () => document.querySelector(selector)?.children?.length === 0,
+            300,
+            50
+        );
+        const disabledButtonText = document.querySelector(selector);
+        
+        if (!disabledButtonText)
+            return;
+            
+        disabledButtonText.textContent = "Нет окон для записи";
+    }
+    
+    const processProductButton = async () => {
+        console.log('processing product button');
+        
+        const selector = ".js-product-controls-wrapper"
+        await waitFor(
+            () => document.querySelector(selector)?.children?.length === 0,
+            300,
+            50
+        );
+        const controls = document.querySelector(selector);
+        controls.remove();
+        
+        const priceTag = document.querySelector(".js-store-price-wrapper.t-store__prod-popup__price-wrapper");
+        priceTag.remove();
+        
+        // const btnSelector = ".js-store-product .t-store__prod-popup__btn-wrapper";
+        // await waitFor(
+        //     () => document.querySelector(btnSelector),
+        //     300,
+        //     50
+        // );
+        // const productButton = document.querySelector(btnSelector);
+        // productButton.remove();
+        
+        const containerSelector = ".t-store__prod-popup__info.t-align_left.t-store__prod-popup__col-right";
+        await waitFor(
+            () => document.querySelector(containerSelector),
+            300,
+            50
+        );
+        const container = document.querySelector(containerSelector);
+        const formButton = document.createElement("a");
+        formButton.classList.add("t-btn-outline-custom");
+        // formButton.style.backgroundColor = "#ffc45a";
+        // formButton.style.padding = "5px 20px 10px";
+        // formButton.style.color = "#db6434";
+        // formButton.style.borderRadius = "30px";
+        // formButton.style.fontSize = "20px";
+        // formButton.style.marginLeft = "-5px";
+        formButton.textContent = "Подать заявку";
+        
+        const nameSelector = ".js-store-prod-name.js-product-name";
+        const name = document.querySelector(nameSelector);
+        const masterNameParam = encodeURIComponent(name.textContent.trim());
+       // formButton.href = `https://docs.google.com/forms/d/e/1FAIpQLScdRGCsftjH0RalbxDOa5BiWxXnOkc9RYLDbWThSiwK6U0VqA/viewform?usp=pp_url&entry.339093580=${masterNameParam}`;
+       // formButton.target = "_blank";
+        formButton.href = `/anketa?master=${masterNameParam}`;
+
+        formButton.removeAttribute("target");  
+        formButton.target = "_blank";          
+        
+        container.appendChild(formButton);
+        
+        const label = document.createElement("div");
+        label.textContent = "После подачи заявки с вами свяжется наш админ и поможет записаться на игру. Он поможет вам выбрать дату, время и формат игры.";
+        label.style.padding = "10px 0px";
+        label.style.lineHeight = 1.5;
+        label.style.maxWidth = "300px";
+        
+        container.appendChild(label);
+    }
+    
+    const reorderProudctOptions = async () => {
+        console.log('reordering options')
+        await waitFor(() => document.querySelector(".t-product__option"), 300, 50);
+        
+        const container = document.querySelector(".js-product-controls-wrapper");
+        const options = [...container.querySelectorAll(".t-product__option")];
+        
+        const newContainer = container.cloneNode(true);
+        newContainer.innerHTML = '';
+        
+        const typeOptEl = options.find((optEl) => optEl.textContent.match(/участие/i));
+        newContainer.appendChild(typeOptEl);
+        options.filter((optEl) => optEl != typeOptEl).forEach((optEl) => {
+            newContainer.appendChild(optEl);
+        })
+        
+        container.replaceWith(newContainer);
+    };
+    
+    const handleForeignOrders = async () => {
+        console.log("find order form...")
+        const form = await waitFor(
+            () => document.querySelector(".t706__orderform > form"),
+            100,
+            20
+        );
+        
+        if (!form) {
+            console.log("Not found order form");
+            return;
+        }
+        
+        const btnSubmit = form.querySelector("button[type='submit']");
+        
+        const getUserType = (prodEl) => {
+            if (prodEl.textContent.match(/игрок/i))
+                return "PLAYER";
+            if (prodEl.textContent.match(/наблюдатель/i))
+                return "SPECTATOR";
+            return null;
+        }
+        
+        const getPrice = (prodEl) => {
+            const priceEl = prodEl.querySelector(".t706__cartwin-prodamount-price");
+            const price = priceEl.textContent.replace(/\s+/, "");
+            return price;
+        }
+        
+        const isOnlyOneProduct = (productsEls) => {
+            if (productsEls.length > 1)
+                return false;
+            const prodEl = productsEls[0];
+            const countEl = prodEl.querySelector(".t706__product-quantity");
+            const count = parseInt(countEl.textContent);
+            return count === 1;
+        }
+            
+        btnSubmit.addEventListener("click", async (e) => {
+            try {
+                const fd  = new FormData(form);
+                const isForeignOrder = fd.get("paymentsystem") === "banktransfer";
+                const productsEls = document.querySelectorAll(".t706__product");
+                    
+                if (isForeignOrder && isOnlyOneProduct(productsEls)) {
+                    const prodEl = productsEls[0];
+                
+                    const url = "https://tak.cyture.ru/api/lava_products?"
+                    
+                    const res = await fetch(url + new URLSearchParams({
+                        email: fd.get("email"),
+                        price: getPrice(prodEl),
+                        user_type: getUserType(prodEl)
+                        
+                    }));
+                    
+                    if (!res.ok)
+                        throw res;
+                    
+                    const json = await res.json();
+                    
+                    setTimeout(() => {
+                        if (json.paymentUrl)
+                            window.open(json.paymentUrl, "_blank").focus();
+                    }, 50);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        })
+    }
+    
+    const isProductPage = window.location.pathname.match(/\/tproduct\/.+/);
+    
+    if (isProductPage) {
+        processProductDesc();
+        processProductButton();
+        processProductBackButton();
+        // processOutOfStockButton();
+        // reorderProudctOptions();
+    }
+    
+    // handleForeignOrders();
+</script>
