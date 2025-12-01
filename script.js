@@ -25,98 +25,71 @@
     return arr;
   }
 
-  // Считать «мету строк»: сколько карточек в каждой строке и где стоит разделитель
-  function getRowsMeta(container) {
-    const children = Array.from(container.children);
-    const meta = []; // [{size:number, sep:HTMLElement|null}]
-    let size = 0;
-    children.forEach(node => {
-      if (node.classList.contains('js-product')) {
-        size++;
-      } else if (node.classList.contains('t-store__grid-separator')) {
-        meta.push({ size, sep: node });
-        size = 0;
-      }
-    });
-    // хвост без разделителя
-    if (size > 0) meta.push({ size, sep: null });
-    return meta;
+  // Определяем число колонок у грида (Tilda сама ставит grid-template-columns)
+  function getColumnsCount(container) {
+    const style = window.getComputedStyle(container);
+    const cols = style.gridTemplateColumns.split(' ').length;
+    return cols || 4;
   }
 
-  // Разложить перемешанные карточки по строкам, не двигая разделители
-  function redistributeByRows(container, shuffled, meta) {
-    let i = 0;
-    meta.forEach(({ size, sep }) => {
-      const chunk = shuffled.slice(i, i + size);
-      i += size;
-      chunk.forEach(card => container.insertBefore(card, sep));
-    });
-  }
-
-  // Выравнивание высоты карточек в пределах каждой строки (между разделителями)
-  function equalizeRows(container) {
+  // Делим карточки на строки по колонкам
+  function splitIntoRows(cards, cols) {
     const rows = [];
-    let row = [];
-    // собираем строки заново
-    Array.from(container.children).forEach(node => {
-      if (node.classList.contains('js-product')) {
-        row.push(node);
-      } else if (node.classList.contains('t-store__grid-separator')) {
-        if (row.length) rows.push(row);
-        row = [];
-      }
-    });
-    if (row.length) rows.push(row);
+    for (let i = 0; i < cards.length; i += cols) {
+      rows.push(cards.slice(i, i + cols));
+    }
+    return rows;
+  }
 
-    // что именно выравнивать: всю карточку (обёртку)
-    const pickTarget = (card) => card.querySelector('.t-store__card__wrap_all') || card;
+  // Выравнивание высоты карточек внутри каждой строки
+  function equalizeRows(container) {
+    const cards = Array.from(container.querySelectorAll('.js-product'));
+    if (!cards.length) return;
 
-    // сброс прошлого выравнивания
-    rows.flat().forEach(card => {
+    const cols = getColumnsCount(container);
+    const rows = splitIntoRows(cards, cols);
+
+    const pickTarget = card =>
+      card.querySelector('.t-store__card__wrap_all') || card;
+
+    // сбрасываем прежние высоты
+    cards.forEach(card => {
       const t = pickTarget(card);
       t.style.minHeight = '';
       t.style.height = '';
     });
 
-    // применяем max высоту в каждой строке
-    rows.forEach(cardsInRow => {
+    // применяем max высоту по строке
+    rows.forEach(row => {
       let maxH = 0;
-      cardsInRow.forEach(card => {
-        const t = pickTarget(card);
-        const h = t.getBoundingClientRect().height;
+      row.forEach(card => {
+        const h = pickTarget(card).getBoundingClientRect().height;
         if (h > maxH) maxH = h;
       });
-      cardsInRow.forEach(card => {
-        const t = pickTarget(card);
-        t.style.minHeight = Math.ceil(maxH) + 'px';
+      row.forEach(card => {
+        pickTarget(card).style.minHeight = Math.ceil(maxH) + 'px';
       });
     });
   }
 
+  // Основная функция перемешивания
   function shuffleContainer(container) {
     if (!container || container.dataset.shuffled === '1') return;
 
-    // все карточки
     const cards = Array.from(container.querySelectorAll('.js-product'));
     if (!cards.length) return;
 
-    // считаем исходные размеры строк (по разделителям)
-    const meta = getRowsMeta(container);
-
-    // перемешиваем все карточки одним пулом
     const shuffled = shuffle(cards.slice());
 
-    // раскладываем обратно по строкам прежних размеров
-    redistributeByRows(container, shuffled, meta);
-
+    // Очищаем контейнер и вставляем карточки в новом порядке
+    shuffled.forEach(card => container.appendChild(card));
     container.dataset.shuffled = '1';
 
-    // после раскладки — выровнять высоту
     equalizeRows(container);
   }
 
   function runAll() {
-    document.querySelectorAll('.js-store-grid-cont').forEach(cont => {
+    document.querySelectorAll('.t-store__card-list').forEach(cont => {
       if (cont.querySelector('.js-product')) {
         if (cont.dataset.shuffled !== '1') shuffleContainer(cont);
         equalizeRows(cont);
@@ -126,24 +99,26 @@
 
   // Дебаунс
   function debounce(fn, ms) {
-    let t; return function () { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), ms); };
+    let t;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, arguments), ms);
+    };
   }
 
   function init() {
     runAll();
 
-    // Если Tilda дорисовывает магазин динамически
+    // MutationObserver — если Tilda догружает карточки
     const mo = new MutationObserver(debounce(runAll, 120));
     mo.observe(document.documentElement, { childList: true, subtree: true });
 
-    // Полезные события Tilda (если есть)
-    ['tilda:store:ready','tilda:products:inited','t-store_loaded']
-      .forEach(evt => window.addEventListener(evt, runAll));
-
-    // На всякий: когда картинки догружаются и меняют высоту
     window.addEventListener('load', runAll);
     window.addEventListener('resize', debounce(runAll, 150));
     window.addEventListener('orientationchange', debounce(runAll, 150));
+
+    ['tilda:store:ready', 'tilda:products:inited', 't-store_loaded']
+      .forEach(evt => window.addEventListener(evt, runAll));
   }
 
   onReady(init);
