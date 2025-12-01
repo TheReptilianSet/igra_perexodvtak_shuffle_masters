@@ -63,6 +63,9 @@
     rows.forEach(row => {
       let maxH = 0;
       row.forEach(card => {
+        if (card.querySelector('.js-store-price-wrapper')) {
+          card.querySelector('.js-store-price-wrapper').remove();
+        }
         const h = pickTarget(card).getBoundingClientRect().height;
         if (h > maxH) maxH = h;
       });
